@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
+  <title>Referral Quality Coach</title>
+  <style>
+    :root {
+      font: 100%/1.5 system-ui, sans-serif;
+      color: #172a3d;
+      background: #f0f5f7;
+      --muted: #43586b;
+      --accent: #066258;
+      --line: #cddbe0;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    main { width: min(100% - 2rem, 49rem); margin: 2.5rem auto; }
+    h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; margin: .4rem 0 .75rem; }
+    h2 { font-size: 1.3rem; margin: 0 0 .65rem; }
+    p { margin: .4rem 0; }
+    .eyebrow { color: var(--accent); font-weight: 750; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; }
+    .intro, .hint, footer { color: var(--muted); }
+    .notice { margin: 1.25rem 0; padding: .8rem 1rem; border-inline-start: .25rem solid var(--accent); background: #e0f1ee; border-radius: .35rem; }
+    .card { background: white; border: 1px solid var(--line); border-radius: 1rem; padding: clamp(1rem, 4vw, 1.6rem); margin: 1rem 0; }
+    label, legend { font-weight: 650; }
+    .field { margin-top: 1rem; }
+    .field > label { display: block; margin-bottom: .3rem; }
+    .hint { font-size: .9rem; margin: .25rem 0 .5rem; }
+    select, input[type="text"], textarea {
+      width: 100%; padding: .65rem .75rem; border: 1px solid #8096a2;
+      border-radius: .5rem; background: #fff; color: inherit; font: inherit;
+    }
+    textarea { min-height: 4.5rem; resize: vertical; }
+    fieldset { border: 0; margin: 1rem 0 0; padding: 0; min-width: 0; }
+    legend { padding: 0; }
+    .choice { display: flex; align-items: baseline; gap: .55rem; padding: .35rem 0; font-weight: 400; }
+    input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .actions { display: flex; gap: .65rem; flex-wrap: wrap; }
+    button { font: inherit; font-weight: 700; border: 1px solid var(--accent); border-radius: .55rem; padding: .65rem 1rem; cursor: pointer; }
+    button[type="submit"] { background: var(--accent); color: white; }
+    button[type="reset"] { background: white; color: var(--accent); }
+    :focus-visible { outline: 3px solid #087bc0; outline-offset: 3px; }
+    details summary { cursor: pointer; font-weight: 700; }
+    li + li { margin-top: .35rem; }
+    #result { border-inline-start: .35rem solid var(--status); }
+    #result[data-level="red"] { --status: #a42b39; }
+    #result[data-level="yellow"] { --status: #825600; }
+    #result[data-level="green"] { --status: #087354; }
+    #result h2 { color: var(--status); }
+    #follow-up { padding: .8rem; background: #f0f5f7; border-radius: .5rem; }
+    footer { font-size: .85rem; margin-top: 1.5rem; }
+    @media (max-width: 36rem) {
+      main { margin-top: 1.25rem; }
+      .grid { grid-template-columns: 1fr; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Talent Acquisition / Internal prototype</p>
+      <h1>Referral Quality Coach</h1>
+      <p class="intro">Turn what you personally observed into a clearer, more useful referral.</p>
+      <p class="notice">This checks the quality of your referral evidence. It does not assess the candidate or determine whether they should progress.</p>
+    </header>
+    <noscript><p class="notice">Enable JavaScript in your browser to use the evidence check.</p></noscript>
+    <form id="referral" autocomplete="off">
+      <section class="card" aria-labelledby="role-title">
+        <h2 id="role-title">1. Choose a role</h2>
+        <label for="role">Open role</label>
+        <select id="role" required disabled>
+          <option value="">Select a role</option>
+        </select>
+        <fieldset id="custom-role" hidden disabled>
+          <legend>Paste another role</legend>
+          <p class="hint">Paste a job description, then copy its requirements into the box below. Nothing is uploaded or interpreted by AI.</p>
+          <div class="field">
+            <label for="custom-title">Role title</label>
+            <input id="custom-title" type="text" required placeholder="e.g., Product Manager">
+          </div>
+          <div class="field">
+            <label for="custom-description">Paste the job description</label>
+            <textarea id="custom-description" required></textarea>
+          </div>
+          <div class="field">
+            <label for="custom-requirements">Role requirements, one per line</label>
+            <p class="hint" id="custom-requirements-hint">Copy the relevant requirements from the description. Each line becomes a checkbox below; the app does not extract requirements automatically.</p>
+            <textarea id="custom-requirements" required aria-describedby="custom-requirements-hint" placeholder="Plan product discovery&#10;Prioritize a product roadmap&#10;Work with design and engineering"></textarea>
+          </div>
+        </fieldset>
+      </section>
+      <div id="questions" hidden>
+        <section class="card" aria-labelledby="context-title">
+          <h2 id="context-title">2. Describe what you observed</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="relationship">How do you know this person?</label>
+              <input id="relationship" type="text" placeholder="e.g., We worked on the same product team">
+            </div>
+            <div class="field">
+              <label for="duration">How long have you known or worked with them?</label>
+              <input id="duration" type="text" placeholder="e.g., About eight months">
+            </div>
+          </div>
+          <fieldset aria-describedby="observation-hint">
+            <legend>What work have you personally seen this person do?</legend>
+            <p class="hint" id="observation-hint">Use one example. Leave these fields blank if you have no firsthand example.</p>
+            <label class="choice"><input id="firsthand" type="checkbox"> I observed this example firsthand.</label>
+            <div class="field">
+              <label for="context">Project or situation</label>
+              <textarea id="context" placeholder="What were they working on, and where did you see it?"></textarea>
+            </div>
+            <div class="field">
+              <label for="action">What they did</label>
+              <textarea id="action" placeholder="Describe an action you saw them take or a work sample you reviewed."></textarea>
+            </div>
+            <div class="field">
+              <label for="outcome">What you saw happen</label>
+              <textarea id="outcome" placeholder="Describe an observed output or outcome. A metric is not required."></textarea>
+            </div>
+          </fieldset>
+        </section>
+        <section class="card" aria-labelledby="relevance-title">
+          <h2 id="relevance-title">3. Connect it to <span id="role-name">the role</span></h2>
+          <div class="field">
+            <label for="relevance">Why does that evidence make them relevant for this specific role?</label>
+            <p class="hint" id="relevance-hint">Explain how your example relates to at least one requirement you select below.</p>
+            <textarea id="relevance" aria-describedby="relevance-hint"></textarea>
+          </div>
+          <fieldset aria-describedby="requirements-hint">
+            <legend>Which of the role requirements can you personally provide evidence against?</legend>
+            <p class="hint" id="requirements-hint">Mark only what you can support firsthand. One requirement is enough; coverage is not scored.</p>
+            <div id="requirements"></div>
+          </fieldset>
+          <div class="field">
+            <label for="limits">What aspects of their experience can you not personally validate?</label>
+            <p class="hint" id="limits-hint">Name an area you did not observe, or describe where your firsthand knowledge ends.</p>
+            <textarea id="limits" aria-describedby="limits-hint"></textarea>
+          </div>
+        </section>
+        <div class="actions">
+          <button type="submit">Check my referral</button>
+          <button type="reset">Clear draft</button>
+        </div>
+      </div>
+    </form>
+    <section class="card" id="result" aria-labelledby="result-title" tabindex="-1" hidden>
+      <h2 id="result-title"></h2>
+      <ul id="reasons"></ul>
+      <p id="follow-up" hidden></p>
+    </section>
+    <details class="card">
+      <summary>How the evidence check works</summary>
+      <ul>
+        <li><strong>Red:</strong> No confirmed firsthand example with both a situation and an observed action.</li>
+        <li><strong>Yellow:</strong> There is a firsthand example, but the draft is missing an observed output or outcome, relationship context, a duration, a role connection and selected requirement, or the limits of what you can validate.</li>
+        <li><strong>Green:</strong> All of those evidence details are present.</li>
+      </ul>
+      <p class="hint">These rules check whether details are supplied, not whether they are true, specific enough in substance, or correctly linked to the role. The check ignores blanks and common placeholders. It does not rate the person or count how many requirements they meet.</p>
+    </details>
+    <footer>Your entries stay in this browser tab. The app does not save or send job descriptions or referral text. Refreshing or closing the page clears your draft. Use sample information for this prototype. The public website is hosted by GitHub Pages; its standard request logging applies.</footer>
+  </main>
+  <script>
+    const roles = {
+      "Senior Software Engineer": [
+        "Design maintainable software systems",
+        "Deliver and operate production software",
+        "Improve reliability through testing and observability",
+        "Collaborate on technical trade-offs",
+        "Mentor engineers through reviews or pairing"
+      ],
+      "Senior UX Designer": [
+        "Plan and synthesize user research",
+        "Design user flows and interactive prototypes",
+        "Iterate designs using usability feedback",
+        "Apply accessibility and design system standards",
+        "Collaborate with product and engineering"
+      ],
+      "Senior Analytics Engineer": [
+        "Build reusable data models using SQL",
+        "Develop reliable data transformation pipelines",
+        "Test and document datasets",
+        "Define metrics with business stakeholders",
+        "Investigate data quality issues"
+      ]
+    };
+
+    const form = document.getElementById("referral");
+    const role = document.getElementById("role");
+    const questions = document.getElementById("questions");
+    const requirements = document.getElementById("requirements");
+    const result = document.getElementById("result");
+    const customRole = document.getElementById("custom-role");
+    const customTitle = document.getElementById("custom-title");
+    const customDescription = document.getElementById("custom-description");
+    const customRequirements = document.getElementById("custom-requirements");
+    const titles = {
+      red: "Red: insufficient evidence",
+      yellow: "Yellow: potentially useful but needs more evidence",
+      green: "Green: strong, specific, role-relevant referral evidence"
+    };
+
+    function hasDetail(id) {
+      const value = document.getElementById(id).value.trim();
+      const normalized = value.toLowerCase().replace(/[\p{P}\p{S}]/gu, "").replace(/\s+/g, " ").trim();
+      return /[\p{L}\p{N}]/u.test(normalized) &&
+        !/^(na|n a|none|nil|nothing|unknown|not known|not applicable|unsure|not sure|i don t know|i dont know|tbd|todo|yes|no|test)$/.test(normalized);
+    }
+
+    function checkEvidence() {
+      const firsthand = document.getElementById("firsthand").checked;
+      const observedWork = hasDetail("context") && hasDetail("action");
+      const selectedRequirement = requirements.querySelector("input:checked");
+      const checks = [
+        [firsthand, "You marked the example as firsthand.", "You have not confirmed a firsthand observation.",
+          "What is one work task or work sample you personally observed, and what did you see the person do?"],
+        [observedWork, "You supplied a situation and an observed action.", "The example needs both a situation and an action you observed.",
+          "On one project you observed, what specific action did the person take?"],
+        [hasDetail("outcome"), "You included an observed output or outcome.", "The example does not say what you saw happen.",
+          "What output did you personally see, or what changed after the action you described?"],
+        [Boolean(selectedRequirement), "You selected at least one requirement you can support firsthand.", "No requirement is marked as supported by firsthand evidence.",
+          "Which one requirement for this role does your firsthand example speak to?"],
+        [hasDetail("relevance"), "You supplied an explanation of how the evidence relates to the role.", "The draft does not explain the connection to the role.",
+          selectedRequirement
+            ? `How does the action you observed relate to this requirement: "${selectedRequirement.value}"?`
+            : "How does the action you observed relate to one requirement for this role?"],
+        [hasDetail("relationship"), "You described how you know the person.", "The relationship context is missing.",
+          "In what setting did you get to observe this person's work?"],
+        [hasDetail("duration"), "You gave a duration for the relationship.", "The draft does not say how long you have known or worked with them.",
+          "For approximately how long did you work with or observe this person in that setting?"],
+        [hasDetail("limits"), "You described the limits of your firsthand knowledge.", "The draft does not say what you cannot personally validate.",
+          "What part of this work or experience was outside your view?"]
+      ];
+      const firstGap = checks.find(([passes]) => !passes);
+      return {
+        level: !firsthand || !observedWork ? "red" : firstGap ? "yellow" : "green",
+        reasons: checks.map(([passes, met, missing]) => passes ? met : missing),
+        followUp: firstGap ? firstGap[3] : ""
+      };
+    }
+
+    for (const name of Object.keys(roles)) role.add(new Option(name, name));
+    role.add(new Option("Paste another role", "custom"));
+
+    function pastedRequirements() {
+      return [...new Set(customRequirements.value.split(/\r?\n/)
+        .map((line) => line.replace(/^\s*(?:[-*\u2022]|\d+[.)])\s*/, "").trim())
+        .filter(Boolean))];
+    }
+
+    function renderRequirements(roleRequirements) {
+      const selected = new Set([...requirements.querySelectorAll("input:checked")]
+        .map((input) => input.value));
+      requirements.replaceChildren();
+      if (!roleRequirements.length) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = "Paste at least one role requirement above to create your checklist.";
+        requirements.append(hint);
+      }
+      for (const requirement of roleRequirements) {
+        const label = document.createElement("label");
+        label.className = "choice";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = requirement;
+        checkbox.checked = selected.has(requirement);
+        label.append(checkbox, requirement);
+        requirements.append(label);
+      }
+    }
+
+    function updateCustomRole() {
+      const roleRequirements = pastedRequirements();
+      customTitle.setCustomValidity(customTitle.value.trim() ? "" : "Enter a role title.");
+      customDescription.setCustomValidity(customDescription.value.trim() ? "" : "Paste a job description.");
+      customRequirements.setCustomValidity(roleRequirements.length ? "" : "Paste at least one role requirement, one per line.");
+      document.getElementById("role-name").textContent = customTitle.value.trim() || "your pasted role";
+      document.getElementById("relevance").value = "";
+      renderRequirements(roleRequirements);
+      result.hidden = true;
+    }
+
+    customRole.addEventListener("input", updateCustomRole);
+
+    role.addEventListener("change", () => {
+      const isCustom = role.value === "custom";
+      customRole.hidden = !isCustom;
+      customRole.disabled = !isCustom;
+      requirements.replaceChildren();
+      questions.hidden = !role.value;
+      document.getElementById("relevance").value = "";
+      document.getElementById("role-name").textContent = role.value || "the role";
+      result.hidden = true;
+      if (isCustom) updateCustomRole();
+      else if (role.value) renderRequirements(roles[role.value]);
+    });
+
+    form.addEventListener("input", () => { result.hidden = true; });
+    form.addEventListener("reset", () => {
+      result.hidden = true;
+      questions.hidden = true;
+      customRole.hidden = true;
+      customRole.disabled = true;
+      for (const field of [customTitle, customDescription, customRequirements]) {
+        field.setCustomValidity("");
+      }
+      document.getElementById("role-name").textContent = "the role";
+      requirements.replaceChildren();
+      role.focus();
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const { level, reasons, followUp } = checkEvidence();
+      result.dataset.level = level;
+      document.getElementById("result-title").textContent = titles[level];
+      const items = reasons.map((reason) => {
+        const item = document.createElement("li");
+        item.textContent = reason;
+        return item;
+      });
+      document.getElementById("reasons").replaceChildren(...items);
+      const prompt = document.getElementById("follow-up");
+      prompt.textContent = followUp ? `One question to strengthen your referral: ${followUp}` : "";
+      prompt.hidden = !followUp;
+      result.hidden = false;
+      result.focus();
+    });
+
+    form.reset();
+    role.disabled = false;
+  </script>
+</body>
+</html>
